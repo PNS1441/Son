@@ -3,27 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ứng Dụng Truyền File Ký Số</title>
+    <title>Truyền File Ký Số</title>
     <link href="output.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f3f4f6;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 400px;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
+<body class="bg-gray-100 h-screen flex justify-center items-center">
+    <div class="bg-white p-8 rounded shadow-md w-96">
         <h1 class="text-2xl font-bold text-center mb-4">Truyền File Ký Số</h1>
         <input type="file" id="fileInput" class="block w-full mb-4 p-2 border rounded" onchange="handleFileSelect(event)">
         <button onclick="transmitFile()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Truyền File</button>
@@ -38,58 +22,55 @@
         function initWebSocket() {
             ws = new WebSocket('ws://localhost:8080');
             ws.onopen = () => {
-                console.log('Kết nối WebSocket thành công');
                 document.getElementById('status').innerText = 'Kết nối thành công, sẵn sàng truyền!';
             };
-
             ws.onmessage = (event) => {
                 document.getElementById('status').innerText = event.data;
             };
-
-            ws.onerror = (error) => {
-                console.error('Lỗi WebSocket:', error);
-                document.getElementById('status').innerText = 'Lỗi kết nối WebSocket! Vui lòng kiểm tra server.';
+            ws.onerror = () => {
+                document.getElementById('status').innerText = 'Lỗi kết nối WebSocket!';
             };
-
             ws.onclose = () => {
-                console.log('Kết nối WebSocket đóng');
                 document.getElementById('status').innerText = 'Kết nối đã đóng. Thử lại sau!';
             };
         }
 
-        window.onload = initWebSocket; // Khởi tạo WebSocket khi trang tải
+        window.onload = initWebSocket;
 
         function handleFileSelect(event) {
             selectedFile = event.target.files[0];
             document.getElementById('status').innerText = `Đã chọn: ${selectedFile.name}`;
         }
 
-        function generateSignature(fileData) {
-            return btoa(fileData.substring(0, 10)) + '-signature'; // Mô phỏng ký số
+        async function generateSignature(fileData) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(fileData);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         function transmitFile() {
             if (!selectedFile) {
-                document.getElementById('status').innerText = 'Vui lòng chọn file trước!';
+                document.getElementById('status').innerText = 'Vui lòng chọn file!';
                 return;
             }
 
             if (ws.readyState !== WebSocket.OPEN) {
-                document.getElementById('status').innerText = 'Kết nối WebSocket chưa sẵn sàng! Đang thử lại...';
-                initWebSocket();
-                setTimeout(transmitFile, 1000); // Thử lại sau 1 giây
+                document.getElementById('status').innerText = 'WebSocket chưa sẵn sàng!';
                 return;
             }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const fileData = e.target.result;
-                const signature = generateSignature(fileData);
+                const signature = await generateSignature(fileData);
                 document.getElementById('signature').innerText = `Ký số: ${signature}`;
-
-                ws.send(JSON.stringify({ fileName: selectedFile.name, data: fileData, signature: signature }));
-                document.getElementById('status').innerText = `Đang truyền ${selectedFile.name}...`;
+                ws.send(JSON.stringify({ fileName: selectedFile.name, data: fileData, signature }));
+                document.getElementById('status').innerText = `Đã gửi file ${selectedFile.name}`;
             };
             reader.readAsDataURL(selectedFile);
         }
     </script>
+</body>
+</html>

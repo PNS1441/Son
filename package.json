@@ -1,21 +1,8 @@
 {
-  "name": "file-transmission-project",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "build-css": "npx tailwindcss -i ./styles.css -o ./output.css --watch"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.1"
-  },
   "dependencies": {
-    "ws": "^8.18.0"
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.10",
+    "ws": "^8.18.2"
   }
 }
